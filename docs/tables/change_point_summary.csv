@@ -1,0 +1,5 @@
+method,post_change_rmse,events_to_90pct_of_jump
+constant K=8,51.158761274396184,237.0
+constant K=24,49.96416725505833,60.0
+constant K=64,78.17994366270604,24.0
+decaying K,44.903817949929135,192.0
