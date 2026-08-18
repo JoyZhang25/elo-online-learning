@@ -322,28 +322,8 @@ def build_real_data_outputs(
     )
     public_predictions.to_csv(tables / "walk_forward_predictions.csv", index=False)
 
-    fig, axes = plt.subplots(2, 2, figsize=(11.4, 8.3))
-    ax = axes[0, 0]
-    game_counts = (
-        games.set_index("created_at")
-        .assign(game=1)["game"]
-        .resample("10min")
-        .sum()
-    )
-    ax.plot(game_counts.index, game_counts.values, color=COLORS[0], linewidth=2)
-    ax.fill_between(
-        game_counts.index,
-        0,
-        game_counts.values,
-        color=COLORS[0],
-        alpha=0.18,
-    )
-    ax.set_ylabel("games per 10 minutes")
-    ax.set_title("A. Chronological event flow")
-    ax.grid(alpha=0.25)
-    ax.tick_params(axis="x", rotation=20)
-
-    ax = axes[0, 1]
+    fig, axes = plt.subplots(1, 3, figsize=(14.4, 4.2))
+    ax = axes[0]
     best_by_k = (
         result.candidate_metrics.sort_values("log_loss")
         .groupby("k_factor", as_index=False)
@@ -367,13 +347,13 @@ def build_real_data_outputs(
         linewidths=2,
         label=f"selected K={result.selected_k:g}",
     )
-    ax.set_xlabel("K (best validation white advantage for each K)")
+    ax.set_xlabel("Elo step size K")
     ax.set_ylabel("validation log loss")
-    ax.set_title("B. Early-period model selection")
+    ax.set_title("A. Validation model selection")
     ax.grid(alpha=0.25)
     ax.legend(frameon=False)
 
-    ax = axes[1, 0]
+    ax = axes[1]
     for color, (model, group) in zip(COLORS, calibration.groupby("model")):
         ax.plot(
             group["mean_prediction"],
@@ -388,11 +368,11 @@ def build_real_data_outputs(
     ax.set_ylim(0.05, 0.95)
     ax.set_xlabel("mean predicted score")
     ax.set_ylabel("empirical white score")
-    ax.set_title("C. Held-out calibration")
+    ax.set_title("B. Held-out calibration")
     ax.grid(alpha=0.25)
     ax.legend(frameon=False, fontsize=8)
 
-    ax = axes[1, 1]
+    ax = axes[2]
     test = result.predictions.loc[result.predictions["split"] == "test"]
     ax.plot(
         np.arange(len(test)),
@@ -403,7 +383,7 @@ def build_real_data_outputs(
     ax.axhline(0, color="0.35", linestyle="--", linewidth=1)
     ax.set_xlabel("held-out game")
     ax.set_ylabel("cumulative loss: online − frozen")
-    ax.set_title("D. Value of within-tournament updating")
+    ax.set_title("C. Value of online updating")
     ax.grid(alpha=0.25)
 
     fig.suptitle(
