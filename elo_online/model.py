@@ -7,14 +7,69 @@ from dataclasses import dataclass, field
 import numpy as np
 
 
+DEFAULT_ELO_SCALE = 400.0
+
+
+def k_to_alpha(k_factor: float, *, scale: float = DEFAULT_ELO_SCALE) -> float:
+    """Convert the conventional Elo ``K`` to the logistic-SGD step ``alpha``."""
+
+    if not np.isfinite(scale) or scale <= 0:
+        raise ValueError("scale must be positive")
+    k_factor = float(k_factor)
+    if not np.isfinite(k_factor) or k_factor < 0:
+        raise ValueError("k_factor must be finite and nonnegative")
+    return k_factor * np.log(10.0) / scale
+
+
+def alpha_to_k(alpha: float, *, scale: float = DEFAULT_ELO_SCALE) -> float:
+    """Convert a normalized logistic-SGD step ``alpha`` to Elo ``K`` points."""
+
+    if not np.isfinite(scale) or scale <= 0:
+        raise ValueError("scale must be positive")
+    alpha = float(alpha)
+    if not np.isfinite(alpha) or alpha < 0:
+        raise ValueError("alpha must be finite and nonnegative")
+    return alpha * scale / np.log(10.0)
+
+
+def rating_to_skill(
+    rating: float | np.ndarray,
+    *,
+    scale: float = DEFAULT_ELO_SCALE,
+) -> float | np.ndarray:
+    """Map Elo points to the natural-log Bradley-Terry skill coordinate."""
+
+    if not np.isfinite(scale) or scale <= 0:
+        raise ValueError("scale must be positive")
+    skill = np.asarray(rating) * np.log(10.0) / scale
+    if np.ndim(skill) == 0:
+        return float(skill)
+    return skill
+
+
+def skill_to_rating(
+    skill: float | np.ndarray,
+    *,
+    scale: float = DEFAULT_ELO_SCALE,
+) -> float | np.ndarray:
+    """Map natural-log Bradley-Terry skill back to Elo points."""
+
+    if not np.isfinite(scale) or scale <= 0:
+        raise ValueError("scale must be positive")
+    rating = np.asarray(skill) * scale / np.log(10.0)
+    if np.ndim(rating) == 0:
+        return float(rating)
+    return rating
+
+
 def expected_score(
     rating_a: float | np.ndarray,
     rating_b: float | np.ndarray,
     *,
-    scale: float = 400.0,
+    scale: float = DEFAULT_ELO_SCALE,
     advantage_a: float = 0.0,
 ) -> float | np.ndarray:
-    """Return the Bradley–Terry/Elo expected score for player A.
+    """Return the Bradley-Terry/Elo expected score for player A.
 
     ``scale=400`` gives the familiar base-10 Elo parameterization.  The
     implementation is algebraically equivalent to a logistic link.  Without
@@ -22,8 +77,10 @@ def expected_score(
     clipped only to avoid floating-point overflow for extreme inputs.
     """
 
-    if scale <= 0:
+    if not np.isfinite(scale) or scale <= 0:
         raise ValueError("scale must be positive")
+    if not np.isfinite(advantage_a):
+        raise ValueError("advantage_a must be finite")
     exponent = np.clip(
         (np.asarray(rating_b) - np.asarray(rating_a) - advantage_a) / scale,
         -20,
@@ -46,16 +103,27 @@ class EloModel:
 
     k_factor: float
     initial_rating: float = 1500.0
-    scale: float = 400.0
+    scale: float = DEFAULT_ELO_SCALE
     advantage_a: float = 0.0
     ratings: dict[str, float] = field(default_factory=dict)
     games_played: dict[str, int] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        if self.k_factor < 0:
-            raise ValueError("k_factor must be nonnegative")
-        if self.scale <= 0:
+        if not np.isfinite(self.k_factor) or self.k_factor < 0:
+            raise ValueError("k_factor must be finite and nonnegative")
+        if not np.isfinite(self.initial_rating):
+            raise ValueError("initial_rating must be finite")
+        if not np.isfinite(self.scale) or self.scale <= 0:
             raise ValueError("scale must be positive")
+        if not np.isfinite(self.advantage_a):
+            raise ValueError("advantage_a must be finite")
+
+    @staticmethod
+    def _validate_players(player_a: str, player_b: str) -> None:
+        if not player_a.strip() or not player_b.strip():
+            raise ValueError("player names must be nonempty")
+        if player_a.casefold() == player_b.casefold():
+            raise ValueError("player_a and player_b must be distinct")
 
     def rating(self, player: str, seed_rating: float | None = None) -> float:
         """Return a player's current rating, initializing it if necessary."""
@@ -78,6 +146,7 @@ class EloModel:
     ) -> float:
         """Predict player A's score before observing the current outcome."""
 
+        self._validate_players(player_a, player_b)
         rating_a = self.rating(player_a, seed_a)
         rating_b = self.rating(player_b, seed_b)
         return float(
@@ -102,6 +171,7 @@ class EloModel:
     ) -> float:
         """Update both ratings and return the signed change for player A."""
 
+        self._validate_players(player_a, player_b)
         if not 0.0 <= outcome_a <= 1.0:
             raise ValueError("outcome_a must lie in [0, 1]")
         rating_a = self.rating(player_a, seed_a)
@@ -115,9 +185,11 @@ class EloModel:
                     advantage_a=self.advantage_a,
                 )
             )
+        if not np.isfinite(prediction_a) or not 0.0 <= prediction_a <= 1.0:
+            raise ValueError("prediction_a must be finite and lie in [0, 1]")
         step = self.k_factor if k_factor is None else float(k_factor)
-        if step < 0:
-            raise ValueError("k_factor must be nonnegative")
+        if not np.isfinite(step) or step < 0:
+            raise ValueError("k_factor must be finite and nonnegative")
         change = step * (float(outcome_a) - float(prediction_a))
         self.ratings[player_a] = rating_a + change
         self.ratings[player_b] = rating_b - change

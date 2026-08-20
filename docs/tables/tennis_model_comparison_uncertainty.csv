@@ -1,0 +1,2 @@
+model,benchmark,difference,n_matches,mean_log_loss_difference,ci_2_5,ci_97_5,n_month_blocks
+Surface Elo,Overall Elo,Surface minus Overall log loss,10287,-0.002959101952653143,-0.004960409240396077,-0.0010215987571124616,46

@@ -1,4 +1,4 @@
-.PHONY: install test simulations real-data all
+.PHONY: install test simulations tennis all
 
 PYTHON ?= python3
 
@@ -11,7 +11,7 @@ test:
 simulations:
 	$(PYTHON) scripts/run_simulations.py
 
-real-data:
+tennis:
 	$(PYTHON) scripts/run_real_data.py
 
 all:

@@ -1,5 +1,19 @@
-"""Online Elo models, controlled simulations, and walk-forward evaluation."""
+"""Constant-step Elo experiments and chronological ATP evaluation."""
 
-from .model import EloModel, expected_score
+from .model import (
+    EloModel,
+    alpha_to_k,
+    expected_score,
+    k_to_alpha,
+    rating_to_skill,
+    skill_to_rating,
+)
 
-__all__ = ["EloModel", "expected_score"]
+__all__ = [
+    "EloModel",
+    "alpha_to_k",
+    "expected_score",
+    "k_to_alpha",
+    "rating_to_skill",
+    "skill_to_rating",
+]

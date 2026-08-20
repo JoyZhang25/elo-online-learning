@@ -1,13 +1,23 @@
 # Data provenance
 
-The real-data experiment uses the completed Lichess Daily Blitz Arena with
-tournament ID `NQzyuRkI`, played on 18 September 2025.
+The empirical study uses annual ATP workbooks from
+[Tennis-Data](http://www.tennis-data.co.uk/data.php). The default build reads
+2010–2025 match results, court surface, ATP rank, and historical decimal odds.
 
-- Tournament page: <https://lichess.org/tournament/NQzyuRkI>
-- Official export endpoint: `https://lichess.org/api/tournament/NQzyuRkI/games`
-- Lichess open-database terms: <https://database.lichess.org/>
+`elo_online.data` downloads each workbook to `data/cache/`. This directory is
+excluded from version control, and no raw or row-level Tennis-Data records are
+committed. The repository contains only aggregate metrics and figures produced
+by the evaluation.
 
-The raw NDJSON response is cached under `data/cache/` and excluded from version
-control. Running `python scripts/run_real_data.py` downloads it only when the
-cache is absent. Committed prediction outputs hash player identifiers and retain
-only the fields required to audit the chronological evaluation.
+The cleaning rules are fixed in code:
+
+- keep matches marked `Completed`;
+- exclude retirements and walkovers;
+- orient players alphabetically, independently of the winner;
+- use Pinnacle odds when present and the reported bookmaker average otherwise;
+- remove the bookmaker overround before treating odds as probabilities; and
+- predict all matches on a calendar date before updating any ratings from that
+  date, because the workbooks do not contain match timestamps.
+
+Run `python scripts/run_real_data.py` to reproduce the download and analysis.
+Use of the downloaded workbooks remains subject to the source site's terms.

@@ -1,0 +1,10 @@
+statistic,value
+completed matches,39247
+unique players,1093
+first match date,2010-01-04
+last match date,2025-11-16
+median matches per player,8.0
+market odds coverage,99.89%
+validation period begins,2018-01-01
+held-out test begins,2022-01-01
+selected model,Surface Elo

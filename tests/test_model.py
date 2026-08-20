@@ -1,6 +1,15 @@
 import unittest
 
-from elo_online.model import EloModel, expected_score
+import numpy as np
+
+from elo_online.model import (
+    EloModel,
+    alpha_to_k,
+    expected_score,
+    k_to_alpha,
+    rating_to_skill,
+    skill_to_rating,
+)
 
 
 class EloModelTests(unittest.TestCase):
@@ -26,8 +35,27 @@ class EloModelTests(unittest.TestCase):
         self.assertAlmostEqual(change, 0.0)
 
     def test_invalid_step_rejected(self) -> None:
+        for value in (-1.0, np.nan, np.inf):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                EloModel(k_factor=value)
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                k_to_alpha(value)
+
+    def test_invalid_update_inputs_are_rejected(self) -> None:
+        model = EloModel(k_factor=20.0)
         with self.assertRaises(ValueError):
-            EloModel(k_factor=-1.0)
+            model.predict("alice", "Alice")
+        with self.assertRaises(ValueError):
+            model.update("alice", "bob", 1.0, prediction_a=np.nan)
+        with self.assertRaises(ValueError):
+            model.update("alice", "bob", 1.0, k_factor=np.inf)
+
+    def test_k_alpha_and_rating_skill_mappings_are_inverses(self) -> None:
+        k_factor = 32.0
+        self.assertAlmostEqual(alpha_to_k(k_to_alpha(k_factor)), k_factor)
+        rating = 173.71779276130073
+        self.assertAlmostEqual(rating_to_skill(rating), 1.0)
+        self.assertAlmostEqual(skill_to_rating(rating_to_skill(rating)), rating)
 
 
 if __name__ == "__main__":

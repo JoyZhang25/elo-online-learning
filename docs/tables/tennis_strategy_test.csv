@@ -1,0 +1,2 @@
+split,policy,threshold,n_bets,hit_rate,unit_roi,roi_ci_2_5,roi_ci_97_5,final_bankroll,max_drawdown,mean_edge,path_statistics_note
+test,trade,0.02,4480,0.5584821428571428,0.025154017857142857,-0.0018008751122142962,0.05263869722622806,1.3995660304670083,0.22658876920042248,0.03755839386119941,order-dependent; no intraday order or simultaneous-exposure model
